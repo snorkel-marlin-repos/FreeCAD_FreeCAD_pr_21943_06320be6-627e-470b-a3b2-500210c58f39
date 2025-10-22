@@ -616,6 +616,13 @@ int SketchObject::solve(bool updateGeoAfterSolving /*=true*/)
             }
         }
     }
+    else if (err < 0) {
+        // if solver failed, invalid constraints were likely added before solving
+        // (see solve in addConstraint), so solver information is definitely invalid.
+        //
+        // Update: ViewProviderSketch shall now rely on the signalSolverUpdate below for update
+        // this->Constraints.touch();
+    }
 
     signalSolverUpdate();
 
@@ -1784,9 +1791,8 @@ int SketchObject::delGeometry(int GeoId, bool deleteinternalgeo)
     Base::StateLocker lock(managedoperation, true);
 
     const std::vector<Part::Geometry*>& vals = getInternalGeometry();
-    if (GeoId >= int(vals.size())) {
+    if (GeoId < 0 || GeoId >= int(vals.size()))
         return -1;
-    }
 
     if (deleteinternalgeo && hasInternalGeometry(getGeometry(GeoId))) {
         // Only for supported types
@@ -7569,9 +7575,8 @@ const Part::Geometry* SketchObject::_getGeometry(int GeoId) const
         if (GeoId < int(geomlist.size()))
             return geomlist[GeoId];
     }
-    else if (-GeoId-1 < ExternalGeo.getSize()) {
+    else if (GeoId < 0 && -GeoId-1 < ExternalGeo.getSize())
         return ExternalGeo[-GeoId-1];
-    }
 
     return nullptr;
 }
